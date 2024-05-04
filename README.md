@@ -34,6 +34,6 @@ Sprites are picked up from this file and precached upon every mapchange.
 
 Some things to bear in mind when adding animated sprites:
 
-* Due to game limitations the max number of frames supported is 255. Having an entry with more than this will (probably) break the plugin
+* Due to game limitations the max number of frames supported is 255. An entry with a value higher than this will not display correctly
 * Try to keep the size of the sprite down, prefably below 300x on each dimension. Unless you are deliberately trying to piss players off
 * More frames = larger sprite size. e.g. `kufufu.spr` that comes as an example is 255 frames and is ~12mb in size. Players won't appreciate having to download a load of these.
