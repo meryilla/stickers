@@ -1,0 +1,13 @@
+# entry format:
+# <path> <number of frames> <framerate>
+# the .spr extension should be omitted from the path
+# IMPORTANT: HUD sprites have a hardcoded cap of 255 frames!
+
+stickers/americandancer 48 20
+stickers/aniki 45 15
+stickers/cirno 7 20
+stickers/flanders 146 20
+stickers/fuckyou 38 15
+stickers/goose 107 10
+stickers/isthisreal 31 10
+stickers/kufufu 255 30
