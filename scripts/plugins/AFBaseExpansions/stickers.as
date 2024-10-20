@@ -10,7 +10,7 @@ Stickers stickers;
 
 void Stickers_Call()
 {
-    stickers.RegisterExpansion( stickers );
+	stickers.RegisterExpansion( stickers );
 }
 
 class Stickers : AFBaseClass
@@ -24,14 +24,14 @@ class Stickers : AFBaseClass
 
 	void ExpansionInit()
 	{
-		RegisterCommand( "say stickers", "", "- send animated sprites to other players!", ACCESS_Z, @Stickers::PopMenu, CMD_SUPRESS ); 
+		RegisterCommand( "say stickers", "", "- send animated sprites to other players!", ACCESS_Z, @Stickers::PopMenu, CMD_SUPRESS );
 	}
 
-    void MapInit()
-    {
+	void MapInit()
+	{
 		Stickers::g_stickerSprites.deleteAll();
-        Stickers::g_stickerCooldowns.deleteAll();
-        Stickers::g_commandCooldowns.deleteAll();
+		Stickers::g_stickerCooldowns.deleteAll();
+		Stickers::g_commandCooldowns.deleteAll();
 		Stickers::ReadStickers();
 		array<string> stickerNames = Stickers::g_stickerSprites.getKeys();
 
@@ -40,24 +40,24 @@ class Stickers : AFBaseClass
 			Stickers::StickerData@ hData = cast<Stickers::StickerData@>( Stickers::g_stickerSprites[stickerNames[i]] );
 			g_Game.PrecacheModel( "sprites/"+hData.szSpritePath+".spr" );
 		}
-        Stickers::MenuInit();      
-    }
+		Stickers::MenuInit();
+	}
 }
 
 namespace Stickers
 {
-    string g_stickersFile = "scripts/plugins/AFBaseExpansions/stickersprites.txt";
-    dictionary g_stickerSprites;
-    dictionary g_commandCooldowns;
-    dictionary g_stickerCooldowns;
-    CTextMenu@ stickerMenu = null;
+	string g_stickersFile = "scripts/plugins/AFBaseExpansions/stickersprites.txt";
+	dictionary g_stickerSprites;
+	dictionary g_commandCooldowns;
+	dictionary g_stickerCooldowns;
+	CTextMenu@ stickerMenu = null;
 
 	class StickerData
 	{
 		string szSpritePath;
 		string szName;
-        int iFrames;
-        float flFrameRate;
+		int iFrames;
+		float flFrameRate;
 	}
 
 	class PlayerMenu
@@ -66,9 +66,9 @@ namespace Stickers
 		int iState;
 		string sTarget;
 	}
-	
+
 	dictionary g_playerMenus;
-    const int iMenuTime = 10;
+	const int iMenuTime = 10;
 
 	void MenuInit()
 	{
@@ -87,7 +87,7 @@ namespace Stickers
 			for( int i = 1; i <= g_Engine.maxClients; i++ )
 				MenuRemove(i);
 		}
-	}    
+	}
 
 	void ReadStickers()
 	{
@@ -104,42 +104,42 @@ namespace Stickers
 
 				if( sFix == " " || sFix == "\n" || sFix == "\r" || sFix == "\t" )
 					szLine = szLine.SubString( 0, szLine.Length() -1 );
-					
+
 				if( szLine.SubString( 0, 1 ) == "#" || szLine.IsEmpty() )
 					continue;
 
 				array<string> parsed = szLine.Split( " " );
-              
+
 				if( parsed.length() < 2 )
-					continue;                    
-					
+					continue;
+
 				StickerData hData;
 				string szName = "";
 				string szSpritePath = "";
-                int iFrames = 0;
-                float flFrameRate = 10;
-                
-                array<string> parsed2 = parsed[0].Split( "/" );
-                szName = parsed2[parsed2.length() -1];
-                szName = szName.ToLowercase();
-                szSpritePath = parsed[0];
-                iFrames = atoi( parsed[1] );
-                flFrameRate = atof( parsed[2] );
-				
+				int iFrames = 0;
+				float flFrameRate = 10;
+
+				array<string> parsed2 = parsed[0].Split( "/" );
+				szName = parsed2[parsed2.length() -1];
+				szName = szName.ToLowercase();
+				szSpritePath = parsed[0];
+				iFrames = atoi( parsed[1] );
+				flFrameRate = atof( parsed[2] );
+
 				if( szName == "" || szSpritePath == "" )
 					continue;
-					
+
 				hData.szName = szName;
 				hData.szSpritePath = szSpritePath;
-                hData.iFrames = iFrames;
-                hData.flFrameRate = flFrameRate;
-					
-				g_stickerSprites[szName] = hData; 
+				hData.iFrames = iFrames;
+				hData.flFrameRate = flFrameRate;
+
+				g_stickerSprites[szName] = hData;
 			}
 			file.Close();
 		}
 	}
-    
+
 	void MenuPartialRemove( int i )
 	{
 		PlayerMenu@ plrMenu = cast<PlayerMenu@>(g_playerMenus[i]);
@@ -148,7 +148,7 @@ namespace Stickers
 			plrMenu.cMenu.Unregister();
 
 		@plrMenu.cMenu = null;
-	}    
+	}
 
 	void MenuRemove( int i )
 	{
@@ -161,12 +161,12 @@ namespace Stickers
 		plrMenu.iState = 0;
 		plrMenu.sTarget = "nonexistantuser";
 	}
-	
+
 	void PopMenu( AFBaseArguments@ AFArgs )
 	{
 		CBasePlayer@ pPlayer = AFArgs.User;
 		string szFixId = AFBase::FormatSafe( AFBase::GetFixedSteamID( pPlayer ) );
-		
+
 		if( g_commandCooldowns.exists( szFixId ) && float( g_commandCooldowns[szFixId] ) > g_Engine.time )
 		{
 			stickers.Tell( "Don't spam the command.", pPlayer, HUD_PRINTTALK );
@@ -180,10 +180,10 @@ namespace Stickers
 		if( plrMenu.iState != 3 )
 		{
 			MenuRemove( AFArgs.User.entindex() );
-			MakePlayerMenu( AFArgs.User.entindex() );	
+			MakePlayerMenu( AFArgs.User.entindex() );
 			plrMenu.cMenu.Open( iMenuTime,0,AFArgs.User );
 		}
-	}    
+	}
 
 	//Construct player list on menu
 	void MakePlayerMenu( int i )
@@ -219,9 +219,9 @@ namespace Stickers
 
 					return;
 				}
-				
+
 				plrMenu.sTarget = temp;
-				
+
 				g_Scheduler.SetTimeout( "DelayedCallback", 0.1f, EHandle( pPlayer ) );
 
 				return;
@@ -235,10 +235,10 @@ namespace Stickers
 
 				return;
 			}
-			
+
 			stickers.Tell( "Unknown menu state!", pPlayer, HUD_PRINTTALK );
 		}
-	} 
+	}
 
 	void DelayedCallback(EHandle ePlayer)
 	{
@@ -260,12 +260,12 @@ namespace Stickers
 		@plrMenu.cMenu = CTextMenu( Stickers::MenuCallback );
 		plrMenu.cMenu.SetTitle( "\\r[Stickers]\\w Select sprite:" );
 
-        array<string> stickerNames = g_stickerSprites.getKeys();
-        stickerNames.sortAsc();
-        for( uint i = 0; i < stickerNames.length(); i++ )
-        {
-            plrMenu.cMenu.AddItem( stickerNames[i].ToLowercase(), null );
-        }
+		array<string> stickerNames = g_stickerSprites.getKeys();
+		stickerNames.sortAsc();
+		for( uint i = 0; i < stickerNames.length(); i++ )
+		{
+			plrMenu.cMenu.AddItem( stickerNames[i].ToLowercase(), null );
+		}
 
 		plrMenu.cMenu.Register();
 		plrMenu.iState = 2;
@@ -275,73 +275,73 @@ namespace Stickers
 	void ExecuteSpriteCommand( const CTextMenuItem@ mItem, CBasePlayer@ pPlayer )
 	{
 		PlayerMenu@ plrMenu = cast<PlayerMenu@>( g_playerMenus[pPlayer.entindex()] );
-        CBasePlayer@ pTarget;
+		CBasePlayer@ pTarget;
 		if( plrMenu.sTarget != "nonexistantuser" )
 		{
 			if( !mItem.m_szName.IsEmpty() )
-            {
-                string szFixId;
-                for( int i = 1; i <= g_Engine.maxClients; i++ )
-                {  
-                    @pTarget = g_PlayerFuncs.FindPlayerByIndex( i );
-                    if( pTarget !is null && pTarget.IsConnected() )
-                    {
-                        szFixId = AFBase::FormatSafe( AFBase::GetFixedSteamID( pTarget ) );
-                        if( string( plrMenu.sTarget ).ToLowercase() == string( pTarget.pev.netname ).ToLowercase() || string( plrMenu.sTarget ) == szFixId )
-                            break;
-                    }
-                }
+			{
+				string szFixId;
+				for( int i = 1; i <= g_Engine.maxClients; i++ )
+				{
+					@pTarget = g_PlayerFuncs.FindPlayerByIndex( i );
+					if( pTarget !is null && pTarget.IsConnected() )
+					{
+						szFixId = AFBase::FormatSafe( AFBase::GetFixedSteamID( pTarget ) );
+						if( string( plrMenu.sTarget ).ToLowercase() == string( pTarget.pev.netname ).ToLowercase() || string( plrMenu.sTarget ) == szFixId )
+							break;
+					}
+				}
 
-                if( pTarget is null )
-                {
-                    stickers.Tell("Oops, can't find them. Maybe try again?", pPlayer, HUD_PRINTTALK);
-                    return;
-                }
+				if( pTarget is null )
+				{
+					stickers.Tell("Oops, can't find them. Maybe try again?", pPlayer, HUD_PRINTTALK);
+					return;
+				}
 
-                
-                if( float(g_stickerCooldowns[szFixId]) > g_Engine.time )
-                {
-                    stickers.Tell("Please wait, " + pTarget.pev.netname + " already has a sticker displayed!", pPlayer, HUD_PRINTTALK);
-                    return;
-                }
 
-                PlaySprite( pTarget, mItem.m_szName );
-                stickers.Tell( "" + pPlayer.pev.netname + " sent you a sticker!", pTarget, HUD_PRINTTALK );
-            }
-			    
+				if( float(g_stickerCooldowns[szFixId]) > g_Engine.time )
+				{
+					stickers.Tell("Please wait, " + pTarget.pev.netname + " already has a sticker displayed!", pPlayer, HUD_PRINTTALK);
+					return;
+				}
+
+				PlaySprite( pTarget, mItem.m_szName );
+				stickers.Tell( "" + pPlayer.pev.netname + " sent you a sticker!", pTarget, HUD_PRINTTALK );
+			}
+
 			return;
 		}
-		
+
 		stickers.Tell("Illegal target!", pPlayer, HUD_PRINTTALK);
-	}                                    
+	}
 
 	//Display the sprite on the relevant player's screen
-    void PlaySprite( EHandle hPlayer, string szStickerName )
-    {
-        if( !hPlayer )
-            return;
+	void PlaySprite( EHandle hPlayer, string szStickerName )
+	{
+		if( !hPlayer )
+			return;
 
-        CBasePlayer @pPlayer = cast<CBasePlayer@>( hPlayer.GetEntity() );
-        RGBA RGBA_STICKER = RGBA( 255, 255, 255, 255 );
+		CBasePlayer @pPlayer = cast<CBasePlayer@>( hPlayer.GetEntity() );
+		RGBA RGBA_STICKER = RGBA( 255, 255, 255, 255 );
 
-        StickerData@ hData = cast<StickerData@>( g_stickerSprites[szStickerName] );
+		StickerData@ hData = cast<StickerData@>( g_stickerSprites[szStickerName] );
 
-        HUDSpriteParams StickerDisplayParams;
-        StickerDisplayParams.channel = 0;
-        StickerDisplayParams.flags = HUD_ELEM_SCR_CENTER_X | HUD_ELEM_SCR_CENTER_Y | HUD_ELEM_NO_BORDER | HUD_SPR_OPAQUE;
-        StickerDisplayParams.x = -0.2; //X axis position of the sprite on the HUD
-        StickerDisplayParams.y = -0.1; //Y axis position of the sprite on the HUD
-        StickerDisplayParams.spritename = hData.szSpritePath+".spr";
-        StickerDisplayParams.color1 = RGBA_STICKER;
-        StickerDisplayParams.color2 = RGBA_STICKER;
-        StickerDisplayParams.frame = 0;
-        StickerDisplayParams.numframes = hData.iFrames;
-        StickerDisplayParams.framerate = hData.flFrameRate;
-        StickerDisplayParams.fxTime = 8;
-        StickerDisplayParams.holdTime = 8; //How long the sprite is displayed for
+		HUDSpriteParams StickerDisplayParams;
+		StickerDisplayParams.channel = 0;
+		StickerDisplayParams.flags = HUD_ELEM_SCR_CENTER_X | HUD_ELEM_SCR_CENTER_Y | HUD_ELEM_NO_BORDER | HUD_SPR_OPAQUE;
+		StickerDisplayParams.x = -0.2; //X axis position of the sprite on the HUD
+		StickerDisplayParams.y = -0.1; //Y axis position of the sprite on the HUD
+		StickerDisplayParams.spritename = hData.szSpritePath+".spr";
+		StickerDisplayParams.color1 = RGBA_STICKER;
+		StickerDisplayParams.color2 = RGBA_STICKER;
+		StickerDisplayParams.frame = 0;
+		StickerDisplayParams.numframes = hData.iFrames;
+		StickerDisplayParams.framerate = hData.flFrameRate;
+		StickerDisplayParams.fxTime = 8;
+		StickerDisplayParams.holdTime = 8; //How long the sprite is displayed for
 
-        g_PlayerFuncs.HudCustomSprite( pPlayer, StickerDisplayParams );
-        string szFixId = AFBase::FormatSafe( AFBase::GetFixedSteamID( pPlayer ) );
-        g_stickerCooldowns[szFixId] = g_Engine.time + 10.0f;
-    }          
+		g_PlayerFuncs.HudCustomSprite( pPlayer, StickerDisplayParams );
+		string szFixId = AFBase::FormatSafe( AFBase::GetFixedSteamID( pPlayer ) );
+		g_stickerCooldowns[szFixId] = g_Engine.time + 10.0f;
+	}
 }
