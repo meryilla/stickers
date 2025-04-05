@@ -39,6 +39,8 @@ class Stickers : AFBaseClass
 		{
 			Stickers::StickerData@ hData = cast<Stickers::StickerData@>( Stickers::g_stickerSprites[stickerNames[i]] );
 			g_Game.PrecacheModel( "sprites/"+hData.szSpritePath+".spr" );
+			if( !hData.szSoundPath.IsEmpty() )
+				g_SoundSystem.PrecacheSound( hData.szSoundPath );
 		}
 		Stickers::MenuInit();
 	}
@@ -46,6 +48,9 @@ class Stickers : AFBaseClass
 
 namespace Stickers
 {
+	const float g_flStickerDelay = 10.0; //Default delay between stickers. Should be larger than the default hold time
+	const float g_flDefaultHoldTime = 8; //Default hold time
+
 	string g_stickersFile = "scripts/plugins/AFBaseExpansions/stickersprites.txt";
 	dictionary g_stickerSprites;
 	dictionary g_commandCooldowns;
@@ -58,6 +63,8 @@ namespace Stickers
 		string szName;
 		int iFrames;
 		float flFrameRate;
+		float flHoldTime;
+		string szSoundPath;
 	}
 
 	class PlayerMenu
@@ -108,7 +115,12 @@ namespace Stickers
 				if( szLine.SubString( 0, 1 ) == "#" || szLine.IsEmpty() )
 					continue;
 
-				array<string> parsed = szLine.Split( " " );
+				array<string> parsed;// = szLine.Split( " " );
+				array<string> splitLine = szLine.Split( " " );
+				for( uint i = 0; i < splitLine.length(); i++ )
+				{
+					parsed.insertLast( splitLine[i] );
+				}
 
 				if( parsed.length() < 2 )
 					continue;
@@ -118,6 +130,8 @@ namespace Stickers
 				string szSpritePath = "";
 				int iFrames = 0;
 				float flFrameRate = 10;
+				float flHoldTime = g_flDefaultHoldTime;
+				string szSoundPath = "";
 
 				array<string> parsed2 = parsed[0].Split( "/" );
 				szName = parsed2[parsed2.length() -1];
@@ -126,6 +140,11 @@ namespace Stickers
 				iFrames = atoi( parsed[1] );
 				flFrameRate = atof( parsed[2] );
 
+				if( parsed.length() >= 4 )
+					flHoldTime = atof( parsed[3] );
+				if( parsed.length() >= 4 )
+					szSoundPath = parsed[4];
+
 				if( szName == "" || szSpritePath == "" )
 					continue;
 
@@ -133,6 +152,8 @@ namespace Stickers
 				hData.szSpritePath = szSpritePath;
 				hData.iFrames = iFrames;
 				hData.flFrameRate = flFrameRate;
+				hData.flHoldTime = flHoldTime;
+				hData.szSoundPath = szSoundPath;
 
 				g_stickerSprites[szName] = hData;
 			}
@@ -142,9 +163,9 @@ namespace Stickers
 
 	void MenuPartialRemove( int i )
 	{
-		PlayerMenu@ plrMenu = cast<PlayerMenu@>(g_playerMenus[i]);
+		PlayerMenu@ plrMenu = cast<PlayerMenu@>( g_playerMenus[i] );
 
-		if(@plrMenu.cMenu !is null)
+		if( @plrMenu.cMenu !is null )
 			plrMenu.cMenu.Unregister();
 
 		@plrMenu.cMenu = null;
@@ -152,9 +173,9 @@ namespace Stickers
 
 	void MenuRemove( int i )
 	{
-		PlayerMenu@ plrMenu = cast<PlayerMenu@>(g_playerMenus[i]);
+		PlayerMenu@ plrMenu = cast<PlayerMenu@>( g_playerMenus[i] );
 
-		if(@plrMenu.cMenu !is null)
+		if( @plrMenu.cMenu !is null )
 			plrMenu.cMenu.Unregister();
 
 		@plrMenu.cMenu = null;
@@ -198,7 +219,7 @@ namespace Stickers
 		{
 			@pSearch = g_PlayerFuncs.FindPlayerByIndex( j );
 			if( pSearch !is null )
-				plrMenu.cMenu.AddItem( pSearch.pev.netname, any(AFBase::FormatSafe(AFBase::GetFixedSteamID( pSearch ) ) ) );
+				plrMenu.cMenu.AddItem( pSearch.pev.netname, any( AFBase::FormatSafe( AFBase::GetFixedSteamID( pSearch ) ) ) );
 		}
 
 		plrMenu.cMenu.Register();
@@ -240,7 +261,7 @@ namespace Stickers
 		}
 	}
 
-	void DelayedCallback(EHandle ePlayer)
+	void DelayedCallback( EHandle ePlayer )
 	{
 		CBaseEntity@ pEnt = ePlayer;
 		CBasePlayer@ pPlayer = cast<CBasePlayer@>( pEnt );
@@ -291,32 +312,33 @@ namespace Stickers
 							break;
 					}
 				}
-
 				if( pTarget is null )
 				{
-					stickers.Tell("Oops, can't find them. Maybe try again?", pPlayer, HUD_PRINTTALK);
+					stickers.Tell( "Oops, can't find them. Maybe try again?", pPlayer, HUD_PRINTTALK );
 					return;
 				}
-
-
-				if( float(g_stickerCooldowns[szFixId]) > g_Engine.time )
+				if( float( g_stickerCooldowns[szFixId] ) > g_Engine.time )
 				{
-					stickers.Tell("Please wait, " + pTarget.pev.netname + " already has a sticker displayed!", pPlayer, HUD_PRINTTALK);
+					stickers.Tell("Please wait, " + pTarget.pev.netname + " has recently received a sticker!", pPlayer, HUD_PRINTTALK);
 					return;
 				}
 
-				PlaySprite( pTarget, mItem.m_szName );
+				StickerData@ hData = cast<StickerData@>( g_stickerSprites[mItem.m_szName] );
+				if( !hData.szSoundPath.IsEmpty() )
+					PlaySprite( pTarget, mItem.m_szName, true, hData.flHoldTime );
+				else
+					PlaySprite( pTarget, mItem.m_szName, false, hData.flHoldTime );
 				stickers.Tell( "" + pPlayer.pev.netname + " sent you a sticker!", pTarget, HUD_PRINTTALK );
 			}
 
 			return;
 		}
 
-		stickers.Tell("Illegal target!", pPlayer, HUD_PRINTTALK);
+		stickers.Tell( "Illegal target!", pPlayer, HUD_PRINTTALK );
 	}
 
 	//Display the sprite on the relevant player's screen
-	void PlaySprite( EHandle hPlayer, string szStickerName )
+	void PlaySprite( EHandle hPlayer, string szStickerName, bool blSound = false, float flHoldTime = g_flDefaultHoldTime )
 	{
 		if( !hPlayer )
 			return;
@@ -337,11 +359,17 @@ namespace Stickers
 		StickerDisplayParams.frame = 0;
 		StickerDisplayParams.numframes = hData.iFrames;
 		StickerDisplayParams.framerate = hData.flFrameRate;
-		StickerDisplayParams.fxTime = 8;
-		StickerDisplayParams.holdTime = 8; //How long the sprite is displayed for
+		StickerDisplayParams.fxTime = flHoldTime;
+		StickerDisplayParams.holdTime = flHoldTime; //How long the sprite is displayed for
 
 		g_PlayerFuncs.HudCustomSprite( pPlayer, StickerDisplayParams );
 		string szFixId = AFBase::FormatSafe( AFBase::GetFixedSteamID( pPlayer ) );
-		g_stickerCooldowns[szFixId] = g_Engine.time + 10.0f;
+		//Cooldown should be a little lower if the sticker duration is short
+		g_stickerCooldowns[szFixId] = g_Engine.time + Math.max( g_flStickerDelay, hData.flHoldTime + 1 );
+
+		if( blSound )
+		{
+			g_SoundSystem.PlaySound( pPlayer.edict(), CHAN_STREAM, hData.szSoundPath, VOL_NORM, ATTN_NORM, 0, PITCH_NORM, pPlayer.entindex(), true, pPlayer.GetOrigin() );
+		}
 	}
 }

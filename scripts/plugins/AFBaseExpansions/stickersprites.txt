@@ -1,6 +1,7 @@
 # entry format:
-# <path> <number of frames> <framerate>
-# the .spr extension should be omitted from the path
+# <sprite path> <number of frames> <framerate> [holdtime] [path to sound file]
+# the .spr extension should be omitted from the sprite path
+# <> parameters are mandatory, [] are optional
 # IMPORTANT: HUD sprites have a hardcoded cap of 255 frames!
 
 stickers/americandancer 48 20
@@ -11,3 +12,4 @@ stickers/fuckyou 38 15
 stickers/goose 107 10
 stickers/isthisreal 31 10
 stickers/kufufu 255 30
+stickers/stfu 87 24 3.6 stickers/stfu.ogg
