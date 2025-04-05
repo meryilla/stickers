@@ -22,13 +22,22 @@ There are an assortment of random sprites in this repo ready to use but you will
 
 To add your own sprites you will need to update the `stickersprites.txt` in `/plugins/AFBaseExpansions`. Each sprite should have it's own entry in the following format:
 
-`<path> <number_of_frames> <framerate>`
+`<path> <number_of_frames> <framerate> [holdtime] [sound_to_play]`
 
-e.g.
+[] parameters are optional - these are only necessary for stickers with audio. 
+
+Example 1:
 
 `stickers/cirno 7 20`
 
 This would add `cirno.spr` found in `sprites/stickers/cirno.spr`, set the number of frames to display as `7` with an fps of `20`.
+
+Example 2:
+
+`stickers/stfu 87 24 3.6 stickers/stfu.ogg`
+
+This would add `stfu.spr` found in `sprites/stickers/stfu.spr`, set the number of 
+frames to display as `87` with an fps of `24`. The sprite remains in the screen for 3.6 seconds and plays the sound file located at `stickers/stfu.ogg` to the player.
 
 Sprites are picked up from this file and precached upon every mapchange.
 
@@ -37,3 +46,4 @@ Some things to bear in mind when adding animated sprites:
 * Due to game limitations the max number of frames supported is 255. An entry with a value higher than this will not display correctly
 * Try to keep the size of the sprite down, prefably below 300x on each dimension. Unless you are deliberately trying to piss players off
 * More frames = larger sprite size. e.g. `kufufu.spr` that comes as an example is 255 frames and is ~12mb in size. Players won't appreciate having to download a load of these.
+* If defined, sounds are played directly to the player along with the script on the CHAN_STREAM channel.
