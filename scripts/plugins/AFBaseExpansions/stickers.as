@@ -24,7 +24,7 @@ class Stickers : AFBaseClass
 
 	void ExpansionInit()
 	{
-		RegisterCommand( "say stickers", "", "- send animated sprites to other players!", ACCESS_Z, @Stickers::PopMenu, CMD_SUPRESS );
+		RegisterCommand( "say stickers", "", "- send animated sprites to other players!", ACCESS_Z, @Stickers::PopMenu, CMD_SUPRESS );	
 	}
 
 	void MapInit()
@@ -57,6 +57,15 @@ namespace Stickers
 	dictionary g_stickerCooldowns;
 	CTextMenu@ stickerMenu = null;
 
+	enum MENU_STATUS
+	{
+		MENU_INIT = 0,
+		MENU_PLAYER,
+		MENU_SPRITE,
+		MENU_REMOVE,
+		MENU_MAIN
+	}
+
 	class StickerData
 	{
 		string szSpritePath;
@@ -74,8 +83,32 @@ namespace Stickers
 		string sTarget;
 	}
 
+	class PlayerState
+	{
+		bool blEnabled = true;
+	}
+
+	dictionary g_playerStates;
+
 	dictionary g_playerMenus;
 	const int iMenuTime = 10;
+
+	PlayerState@ GetState( EHandle hPlayer )
+	{
+		PlayerState pState;
+		if( !hPlayer )
+			return pState;
+
+		CBasePlayer@ pPlayer = cast<CBasePlayer@>( hPlayer.GetEntity() );
+		string szFixId = AFBase::FormatSafe( AFBase::GetFixedSteamID( pPlayer ) );
+		
+
+		if( !g_playerStates.exists( szFixId ) )
+		{
+			g_playerStates[szFixId] = pState;
+		}
+		return cast<PlayerState@>( g_playerStates[szFixId] );
+	}
 
 	void MenuInit()
 	{
@@ -83,7 +116,7 @@ namespace Stickers
 		{
 			PlayerMenu plrMenu;
 			@plrMenu.cMenu = null;
-			plrMenu.iState = 0;
+			plrMenu.iState = MENU_INIT;
 			plrMenu.sTarget = "nonexistantuser";
 
 			for( int i = 1; i <= g_Engine.maxClients; i++ )
@@ -179,7 +212,7 @@ namespace Stickers
 			plrMenu.cMenu.Unregister();
 
 		@plrMenu.cMenu = null;
-		plrMenu.iState = 0;
+		plrMenu.iState = MENU_INIT;
 		plrMenu.sTarget = "nonexistantuser";
 	}
 
@@ -198,12 +231,25 @@ namespace Stickers
 
 		PlayerMenu@ plrMenu = cast<PlayerMenu@>( g_playerMenus[AFArgs.User.entindex()] );
 
-		if( plrMenu.iState != 3 )
+		if( plrMenu.iState != MENU_REMOVE )
 		{
 			MenuRemove( AFArgs.User.entindex() );
-			MakePlayerMenu( AFArgs.User.entindex() );
+			//MakePlayerMenu( AFArgs.User.entindex() );
+			MakeMainMenu( AFArgs.User.entindex() );
 			plrMenu.cMenu.Open( iMenuTime,0,AFArgs.User );
 		}
+	}
+
+	void MakeMainMenu( int iPlayerIndex )
+	{
+		PlayerMenu@ plrMenu = cast<PlayerMenu@>( g_playerMenus[iPlayerIndex] );
+		@plrMenu.cMenu = CTextMenu( Stickers::MenuCallback );
+		plrMenu.cMenu.SetTitle( "\\r[Stickers]\\w Select option: \\w" );
+		plrMenu.cMenu.AddItem( "Send Sticker", null );
+		plrMenu.cMenu.AddItem( "Enable/Disable Stickers", null );
+
+		plrMenu.cMenu.Register();
+		plrMenu.iState = MENU_MAIN;
 	}
 
 	//Construct player list on menu
@@ -223,7 +269,7 @@ namespace Stickers
 		}
 
 		plrMenu.cMenu.Register();
-		plrMenu.iState = 1;
+		plrMenu.iState = MENU_PLAYER;
 	}
 
 	void MenuCallback( CTextMenu@ mMenu, CBasePlayer@ pPlayer, int iPage, const CTextMenuItem@ mItem )
@@ -231,7 +277,20 @@ namespace Stickers
 		if( mItem !is null && pPlayer !is null )
 		{
 			PlayerMenu@ plrMenu = cast<PlayerMenu@>( g_playerMenus[pPlayer.entindex()] );
-			if( plrMenu.iState == 1 )
+			if( plrMenu.iState == MENU_MAIN )
+			{
+				if( mItem.m_szName == "Send Sticker" )
+				{
+					g_Scheduler.SetTimeout( "DelayedCallback", 0.1f, EHandle( pPlayer ), 0 );
+				}
+				else if( mItem.m_szName == "Enable/Disable Stickers" )
+				{
+					g_Scheduler.SetTimeout( "DelayedCallback", 0.1f, EHandle( pPlayer ), 1 );
+				}
+
+				return;
+			}
+			else if( plrMenu.iState == MENU_PLAYER )
 			{
 				string temp = "";
 				if( !mItem.m_pUserData.retrieve( temp ) )
@@ -243,30 +302,52 @@ namespace Stickers
 
 				plrMenu.sTarget = temp;
 
-				g_Scheduler.SetTimeout( "DelayedCallback", 0.1f, EHandle( pPlayer ) );
+				g_Scheduler.SetTimeout( "DelayedCallback", 0.1f, EHandle( pPlayer ), 0 );
 
 				return;
 			}
-			else if( plrMenu.iState == 2 )
+			else if( plrMenu.iState == MENU_SPRITE )
 			{
-				plrMenu.iState = 3;
+				plrMenu.iState = MENU_REMOVE;
 				ExecuteSpriteCommand( mItem, pPlayer );
 
 				g_Scheduler.SetTimeout( "MenuRemove", 0.1f, pPlayer.entindex() );
 
 				return;
 			}
-
 			stickers.Tell( "Unknown menu state!", pPlayer, HUD_PRINTTALK );
 		}
 	}
 
-	void DelayedCallback( EHandle ePlayer )
+	void DelayedCallback( EHandle ePlayer, int iOption=0 )
 	{
 		CBaseEntity@ pEnt = ePlayer;
 		CBasePlayer@ pPlayer = cast<CBasePlayer@>( pEnt );
 		PlayerMenu@ plrMenu = cast<PlayerMenu@>( g_playerMenus[pPlayer.entindex()] );
-		if( plrMenu.iState == 1 )
+		if( plrMenu.iState == MENU_MAIN )
+		{
+			MenuPartialRemove( pPlayer.entindex() );
+			if( iOption == 1 )
+			{
+				PlayerState@ pState = GetState( pPlayer );
+				if( pState.blEnabled )
+				{
+					pState.blEnabled = false;
+					stickers.Tell( "You will no longer be able to send or receive stickers.", pPlayer, HUD_PRINTTALK );
+				}
+				else
+				{
+					pState.blEnabled = true;
+					stickers.Tell( "You can now send or receive stickers.", pPlayer, HUD_PRINTTALK );
+				}
+			}
+			else
+			{
+				MakePlayerMenu( pPlayer.entindex() );
+				plrMenu.cMenu.Open( iMenuTime,0,pPlayer );
+			}
+		}
+		else if( plrMenu.iState == MENU_PLAYER )
 		{
 			MenuPartialRemove( pPlayer.entindex() );
 			MakeSpriteMenu( pPlayer.entindex() );
@@ -289,7 +370,7 @@ namespace Stickers
 		}
 
 		plrMenu.cMenu.Register();
-		plrMenu.iState = 2;
+		plrMenu.iState = MENU_SPRITE;
 	}
 
 	//Determine if target is valid
@@ -317,6 +398,20 @@ namespace Stickers
 					stickers.Tell( "Oops, can't find them. Maybe try again?", pPlayer, HUD_PRINTTALK );
 					return;
 				}
+				PlayerState@ pSenderState = GetState( pPlayer );
+				PlayerState@ pTargetState = GetState( pTarget );
+
+				if( !pSenderState.blEnabled )
+				{
+					stickers.Tell( "You can't send stickers if you have disabled them.", pPlayer, HUD_PRINTTALK);
+					return;
+				}
+				else if( !pTargetState.blEnabled )
+				{
+					stickers.Tell( "" + pTarget.pev.netname + " has disabled stickers :(", pPlayer, HUD_PRINTTALK);
+					return;
+				}
+
 				if( float( g_stickerCooldowns[szFixId] ) > g_Engine.time )
 				{
 					stickers.Tell("Please wait, " + pTarget.pev.netname + " has recently received a sticker!", pPlayer, HUD_PRINTTALK);
@@ -366,6 +461,7 @@ namespace Stickers
 		string szFixId = AFBase::FormatSafe( AFBase::GetFixedSteamID( pPlayer ) );
 		//Cooldown should be a little lower if the sticker duration is short
 		g_stickerCooldowns[szFixId] = g_Engine.time + Math.max( g_flStickerDelay, hData.flHoldTime + 1 );
+
 
 		if( blSound )
 		{
